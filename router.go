@@ -1,3 +1,7 @@
+// Copyright 2019 The liuyosama/Router Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package router
 
 import (
@@ -7,7 +11,7 @@ import (
 	"strings"
 )
 
-//定义路由容器对象结构体，使用树形结构存储路由的不同节点
+//Router:定义路由容器对象结构体，使用树形结构存储路由的不同节点
 type Router struct {
 	group        string
 	trees        map[string]*Tree
@@ -24,39 +28,40 @@ type (
 
 var contextKey = contextKeyType{}
 
-//New方法返回一个默认的路由对象
+//New:New方法返回一个默认的路由对象
 func New() *Router {
-	return &Router{trees: make(map[string]*Tree),}
+	return &Router{trees: make(map[string]*Tree)}
 }
 
-//Group方法返回一个分组的路由对象
+//Group:Group方法返回一个分组的路由对象
 func (r *Router) Group(groupPath string) *Router {
 	return &Router{
 		trees: r.trees,
-		group: groupPath,}
+		group: groupPath}
 }
 
+//GET:GET方法添加一个get请求的path
 func (r *Router) GET(path string, handler http.HandlerFunc) {
 	r.Handle(http.MethodGet, path, handler)
 }
-
+//POST:POST方法添加一个get请求的path
 func (r *Router) POST(path string, handler http.HandlerFunc) {
 	r.Handle(http.MethodPost, path, handler)
 }
-
+//DELETE:DELETE方法添加一个get请求的path
 func (r *Router) DELETE(path string, handler http.HandlerFunc) {
 	r.Handle(http.MethodDelete, path, handler)
 }
-
+//PUT:PUT方法添加一个get请求的path
 func (r *Router) PUT(path string, handler http.HandlerFunc) {
 	r.Handle(http.MethodPut, path, handler)
 }
-
+//PATCH:PATCH方法添加一个get请求的path
 func (r *Router) PATCH(path string, handler http.HandlerFunc) {
 	r.Handle(http.MethodPatch, path, handler)
 }
 
-//Handler处理新增的路由，将其放入路由树结构中
+//Handler:Handler处理新增的路由，将其放入路由树结构中
 func (r *Router) Handle(method, path string, handler http.HandlerFunc) {
 	if method != http.MethodGet &&
 		method != http.MethodPost &&
@@ -66,7 +71,7 @@ func (r *Router) Handle(method, path string, handler http.HandlerFunc) {
 		panic(fmt.Errorf("invaild method!"))
 	}
 
-	tree, ok := r.trees[method];
+	tree, ok := r.trees[method]
 	if !ok {
 		tree = NewTree()
 		r.trees[method] = tree
@@ -84,18 +89,18 @@ func (r *Router) Handle(method, path string, handler http.HandlerFunc) {
 
 }
 
-//为router设置404handler
+//NotFoundPage:为router设置404handler
 func (r *Router) NotFoundPage(handler http.HandlerFunc) {
 	r.notFoundPage = handler
 }
 
-//Use为当前路由对象设置middleware
+//Use:Use为当前路由对象设置middleware
 func (r *Router) Use(middlewares ...middlewareFunc) {
 	if len(middlewares) > 0 {
 		r.middlewares = append(r.middlewares, middlewares...)
 	}
 }
-
+//ServeHTTP:ServeHTTP实现路由签名
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	//检查是否有用户自定义的404handler，如果没有，则使用默认的。并且在函数末尾调用404handler
 	if r.notFoundPage == nil {
@@ -130,6 +135,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+//GetAllParams：GetAllParams获取当前请求的所有参数
 func GetAllParams(r *http.Request) map[string]string {
 	paramMap, ok := r.Context().Value(contextKey).(map[string]string)
 	if ok {
@@ -139,6 +145,7 @@ func GetAllParams(r *http.Request) map[string]string {
 	}
 }
 
+//GetParam：GetParam获取当前请求特定key的参数
 func GetParam(r *http.Request, key string) string {
 	val, ok := GetAllParams(r)[key]
 	if ok {
@@ -148,14 +155,14 @@ func GetParam(r *http.Request, key string) string {
 	}
 }
 
-//处理handler与middleware
+//handle:handle处理handler与middleware
 func handle(w http.ResponseWriter, r *http.Request, handler http.HandlerFunc, middlewares []middlewareFunc) {
 	for _, m := range middlewares {
 		handler = m(handler)
 	}
 	handler(w, r)
 }
-
+//defaultNotFoundPage:defaultNotFoundPage为默认的404Handler
 func defaultNotFoundPage(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotFound)
 	fmt.Fprint(w, "404! Not Found Page!!")
