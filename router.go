@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -14,7 +15,14 @@ type Router struct {
 	notFoundPage http.HandlerFunc
 }
 
-type middlewareFunc func(next http.HandlerFunc) http.HandlerFunc
+type (
+	//middleware方法签名
+	middlewareFunc func(next http.HandlerFunc) http.HandlerFunc
+	//用来存储参数的上下文key
+	contextKeyType struct{}
+)
+
+var contextKey = contextKeyType{}
 
 //New方法返回一个默认的路由对象
 func New() *Router {
@@ -77,14 +85,14 @@ func (r *Router) Handle(method, path string, handler http.HandlerFunc) {
 }
 
 //为router设置404handler
-func (r *Router) NotFoundPage(handler http.HandlerFunc)  {
+func (r *Router) NotFoundPage(handler http.HandlerFunc) {
 	r.notFoundPage = handler
 }
 
 //Use为当前路由对象设置middleware
 func (r *Router) Use(middlewares ...middlewareFunc) {
 	if len(middlewares) > 0 {
-		r.middlewares = append(r.middlewares, middleware...)
+		r.middlewares = append(r.middlewares, middlewares...)
 	}
 }
 
@@ -100,7 +108,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if ok {
 		//获取请求路径，转化为路径节点列表
 		path := req.URL.Path
-		path := strings.TrimPrefix(path, "/")
+		path = strings.TrimPrefix(path, "/")
 		pathList := strings.Split(path, "/")
 
 		//如果路径节点为0，就执行根结点对应的handler,否则在树中查找是否有对应节点
@@ -109,12 +117,34 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				handle(w, req, tree.root.handle, tree.root.middlewares)
 			}
 		} else if len(pathList) > 0 {
-			node := tree.Find(pathList)
+			node, paramMap := tree.Find(pathList)
+			//将参数列表存入request上下文中去
+			ctx := context.WithValue(req.Context(), contextKey, paramMap)
+			req = req.WithContext(ctx)
+
 			if node != nil && node.handle != nil {
 				handle(w, req, node.handle, node.middlewares)
 			}
 		}
 
+	}
+}
+
+func GetAllParams(r *http.Request) map[string]string {
+	paramMap, ok := r.Context().Value(contextKey).(map[string]string)
+	if ok {
+		return paramMap
+	} else {
+		return nil
+	}
+}
+
+func GetParam(r *http.Request, key string) string {
+	val, ok := GetAllParams(r)[key]
+	if ok {
+		return val
+	} else {
+		return ""
 	}
 }
 

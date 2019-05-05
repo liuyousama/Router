@@ -64,14 +64,25 @@ func (tree *Tree) AddPath(path string,r *Router,handler http.HandlerFunc) {
 	node.middlewares = append(node.middlewares, r.middlewares...)
 }
 
-func (t *Tree) Find(pathList []string) *Node {
+func (t *Tree) Find(pathList []string) (*Node, map[string]string) {
 	node := t.root
-	for _, path := range pathList  {
+	paramMap := make(map[string]string)
+
+	for _, path := range pathList {
 		newNode, ok := node.children[path];
-		if !ok{
-			return nil
+
+		//如果没有匹配到下一个路由节点，并且下一个节点是参数节点，就记录参数
+		if !ok && node.paramPath != "" {
+			key := strings.TrimPrefix(node.paramPath, ":")
+			paramMap[key] = path
+			node = node.children[node.paramPath]
+			continue
+		}
+
+		if !ok {
+			return nil, nil
 		}
 		node = newNode
 	}
-	return node
+	return node, paramMap
 }
