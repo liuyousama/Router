@@ -47,7 +47,7 @@ func (tree *Tree) AddPath(path string, r *Router, handler http.HandlerFunc) {
 		//如果这个节点为参数形式(:name)，单独处理
 		if strings.HasPrefix(path, ":") {
 			if node.paramPath != "" {
-				panic(fmt.Errorf("router confilct!!"))
+				panic(fmt.Errorf("Router Conflict!!"))
 			}
 			node.paramPath = path
 			newNode := NewNode()
