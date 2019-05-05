@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-//Router:定义路由容器对象结构体，使用树形结构存储路由的不同节点
+//Router is a container of route.
 type Router struct {
 	group        string
 	trees        map[string]*Tree
@@ -20,43 +20,47 @@ type Router struct {
 }
 
 type (
-	//middleware方法签名
+	//middleware func signature.
 	middlewareFunc func(next http.HandlerFunc) http.HandlerFunc
-	//用来存储参数的上下文key
+	//a context ket used to store the params.
 	contextKeyType struct{}
 )
 
 var contextKey = contextKeyType{}
 
-//New:New方法返回一个默认的路由对象
+//New returns a default router.
 func New() *Router {
 	return &Router{trees: make(map[string]*Tree)}
 }
 
-//Group:Group方法返回一个分组的路由对象
+//Group returns a group router.
 func (r *Router) Group(groupPath string) *Router {
 	return &Router{
 		trees: r.trees,
 		group: groupPath}
 }
 
-//GET:GET方法添加一个get请求的path
+//GET add a route with GET method.
 func (r *Router) GET(path string, handler http.HandlerFunc) {
 	r.Handle(http.MethodGet, path, handler)
 }
-//POST:POST方法添加一个get请求的path
+
+//POST add a route with POST method.
 func (r *Router) POST(path string, handler http.HandlerFunc) {
 	r.Handle(http.MethodPost, path, handler)
 }
-//DELETE:DELETE方法添加一个get请求的path
+
+//DELETE add a route with DELETE method.
 func (r *Router) DELETE(path string, handler http.HandlerFunc) {
 	r.Handle(http.MethodDelete, path, handler)
 }
-//PUT:PUT方法添加一个get请求的path
+
+//PUT add a route with PUT method.
 func (r *Router) PUT(path string, handler http.HandlerFunc) {
 	r.Handle(http.MethodPut, path, handler)
 }
-//PATCH:PATCH方法添加一个get请求的path
+
+//PATCH:PATCH add a route with PATCH method.
 func (r *Router) PATCH(path string, handler http.HandlerFunc) {
 	r.Handle(http.MethodPatch, path, handler)
 }
@@ -89,41 +93,43 @@ func (r *Router) Handle(method, path string, handler http.HandlerFunc) {
 
 }
 
-//NotFoundPage:为router设置404handler
+//NotFoundPage set custom 404 handler to a router
 func (r *Router) NotFoundPage(handler http.HandlerFunc) {
 	r.notFoundPage = handler
 }
 
-//Use:Use为当前路由对象设置middleware
+//Use add middlewares to current router.
 func (r *Router) Use(middlewares ...middlewareFunc) {
 	if len(middlewares) > 0 {
 		r.middlewares = append(r.middlewares, middlewares...)
 	}
 }
-//ServeHTTP:ServeHTTP实现路由签名
+
+//ServeHTTP implements a router signature.
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	//检查是否有用户自定义的404handler，如果没有，则使用默认的。并且在函数末尾调用404handler
+	//check whether the custom 404 handler exists,if not,use the default 404 handler.
 	if r.notFoundPage == nil {
 		r.notFoundPage = defaultNotFoundPage
 	}
+	//call the 404 handler in the end
 	defer r.notFoundPage(w, req)
 
-	//判断方法对应的tree是否存在
+	//check whether the tree with request method exists.
 	tree, ok := r.trees[req.Method]
 	if ok {
-		//获取请求路径，转化为路径节点列表
+		//get the request path, and transform it into a list.
 		path := req.URL.Path
 		path = strings.TrimPrefix(path, "/")
 		pathList := strings.Split(path, "/")
 
-		//如果路径节点为0，就执行根结点对应的handler,否则在树中查找是否有对应节点
+		//if the length of pathList is 0, check the root node handler.
 		if len(pathList) == 0 {
 			if tree.root.handle != nil {
 				handle(w, req, tree.root.handle, tree.root.middlewares)
 			}
 		} else if len(pathList) > 0 {
 			node, paramMap := tree.Find(pathList)
-			//将参数列表存入request上下文中去
+			//store the param map into the request context.
 			ctx := context.WithValue(req.Context(), contextKey, paramMap)
 			req = req.WithContext(ctx)
 
@@ -135,7 +141,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-//GetAllParams：GetAllParams获取当前请求的所有参数
+//GetAllParams gets the map with all params.
 func GetAllParams(r *http.Request) map[string]string {
 	paramMap, ok := r.Context().Value(contextKey).(map[string]string)
 	if ok {
@@ -145,7 +151,7 @@ func GetAllParams(r *http.Request) map[string]string {
 	}
 }
 
-//GetParam：GetParam获取当前请求特定key的参数
+//GetParam gets the param with custom key.
 func GetParam(r *http.Request, key string) string {
 	val, ok := GetAllParams(r)[key]
 	if ok {
@@ -155,14 +161,15 @@ func GetParam(r *http.Request, key string) string {
 	}
 }
 
-//handle:handle处理handler与middleware
+//handle handle the handler and middleware.
 func handle(w http.ResponseWriter, r *http.Request, handler http.HandlerFunc, middlewares []middlewareFunc) {
 	for _, m := range middlewares {
 		handler = m(handler)
 	}
 	handler(w, r)
 }
-//defaultNotFoundPage:defaultNotFoundPage为默认的404Handler
+
+//defaultNotFoundPage is the default handler when 404 not fount is happen.
 func defaultNotFoundPage(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotFound)
 	fmt.Fprint(w, "404! Not Found Page!!")

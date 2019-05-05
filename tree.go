@@ -22,17 +22,19 @@ type Node struct {
 	middlewares []middlewareFunc
 }
 
+//NewTree returns a new Tree.
 func NewTree() *Tree {
 	return &Tree{root: NewNode(), children: make(map[string]*Node)}
 }
 
+//NewNode returns a new Node.
 func NewNode() *Node {
 	return &Node{children: make(map[string]*Node)}
 }
 
-//将给定的path与handler添加到指定的Router中
+//AddPath add the custom path to the tree.
 func (tree *Tree) AddPath(path string, r *Router, handler http.HandlerFunc) {
-	//如果传入的path为空，就直接将handler添加到根结点上
+	//if path is empty,handler will be on the root node.
 	if path == "" {
 		tree.root.handle = handler
 		tree.root.middlewares = append(tree.root.middlewares, r.middlewares...)
@@ -42,9 +44,9 @@ func (tree *Tree) AddPath(path string, r *Router, handler http.HandlerFunc) {
 	pathList := strings.Split(path, "/")
 	node := tree.root
 
-	//循环每一个路由结点
+	//foreach every node
 	for _, path = range pathList {
-		//如果这个节点为参数形式(:name)，单独处理
+		//if a node is with a param,check it weather right.
 		if strings.HasPrefix(path, ":") {
 			if node.paramPath != "" {
 				panic(fmt.Errorf("Router Conflict!!"))
@@ -68,6 +70,7 @@ func (tree *Tree) AddPath(path string, r *Router, handler http.HandlerFunc) {
 	node.middlewares = append(node.middlewares, r.middlewares...)
 }
 
+//Find finds the node with a pathList and record the param in the pathList
 func (t *Tree) Find(pathList []string) (*Node, map[string]string) {
 	node := t.root
 	paramMap := make(map[string]string)
@@ -75,7 +78,7 @@ func (t *Tree) Find(pathList []string) (*Node, map[string]string) {
 	for _, path := range pathList {
 		newNode, ok := node.children[path]
 
-		//如果没有匹配到下一个路由节点，并且下一个节点是参数节点，就记录参数
+		//if there is not the next node matched with the path and current node has a param child node, record the param.
 		if !ok && node.paramPath != "" {
 			key := strings.TrimPrefix(node.paramPath, ":")
 			paramMap[key] = path
