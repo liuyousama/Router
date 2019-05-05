@@ -27,7 +27,7 @@ func HelloRouterHander(w http.ResponseWriter, r *http.Request)  {
 }
 ```
 
-##RESTFUL风格
+## RESTFUL风格
 ```go
 r := Router.New()
     
@@ -37,7 +37,7 @@ r.PUT("/user",PutHandler)
 r.DELETE("/user",DeleteHandler)
 r.PATCH("/user",PatchHandler)
 ```
-##路由参数
+## 路由参数
 - 设置参数
 ```go
 r.GET("/user/:id",GetHandler)
@@ -52,7 +52,7 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
     id := Router.GetParam(r, "id")
 }
 ```
-##路由分组
+## 路由分组
 ```go
 r := Router.New()
 
@@ -62,7 +62,7 @@ userGroup := r.Group("user")
 }
 ```
 
-##使用中间件
+## 使用中间件
 - 使用全局路由
 ```go
 
