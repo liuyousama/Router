@@ -126,6 +126,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		if len(pathList) == 0 {
 			if tree.root.handle != nil {
 				handle(w, req, tree.root.handle, tree.root.middlewares)
+				return
 			}
 		} else if len(pathList) > 0 {
 			node, paramMap := tree.Find(pathList)
@@ -135,6 +136,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 			if node != nil && node.handle != nil {
 				handle(w, req, node.handle, node.middlewares)
+				return
 			}
 		}
 
