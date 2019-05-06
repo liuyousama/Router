@@ -107,13 +107,6 @@ func (r *Router) Use(middlewares ...middlewareFunc) {
 
 //ServeHTTP implements a router signature.
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	//check whether the custom 404 handler exists,if not,use the default 404 handler.
-	if r.notFoundPage == nil {
-		r.notFoundPage = defaultNotFoundPage
-	}
-	//call the 404 handler in the end
-	defer r.notFoundPage(w, req)
-
 	//check whether the tree with request method exists.
 	tree, ok := r.trees[req.Method]
 	if ok {
@@ -139,8 +132,14 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				return
 			}
 		}
-
 	}
+
+	//check whether the custom 404 handler exists,if not,use the default 404 handler.
+	if r.notFoundPage == nil {
+		r.notFoundPage = defaultNotFoundPage
+	}
+	//call the 404 handler in the end
+	r.notFoundPage(w, req)
 }
 
 //GetAllParams gets the map with all params.
